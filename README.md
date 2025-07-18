@@ -184,3 +184,92 @@ Write-Host "Tat ca cac tac vu da hoan tat!" -ForegroundColor Green
     ```
 
 Tập lệnh sẽ tự động chạy và cài đặt từng phần mềm một. Quá trình này có thể mất khá nhiều thời gian tùy thuộc vào số lượng phần mềm và tốc độ mạng của bạn.
+
+
+# LỖI THƯỜNG GẶP
+
+`winget` không chạy được là một sự cố khá phổ biến. Dưới đây là các nguyên nhân và cách khắc phục chi tiết, xếp theo thứ tự từ dễ đến khó.
+
+Bạn hãy thử từng bước một nhé.
+
+-----
+
+### \#\# 1. Kiểm tra phiên bản Windows 🔍
+
+Đầu tiên, `winget` yêu cầu phiên bản Windows 10 từ **1809** trở lên hoặc **Windows 11**.
+
+  * Nhấn tổ hợp phím `Windows` + `R`.
+  * Gõ `winver` và nhấn Enter.
+  * Một cửa sổ sẽ hiện ra, hãy kiểm tra dòng "Version". Nếu phiên bản của bạn cũ hơn **1809**, bạn cần phải cập nhật Windows trước.
+
+-----
+
+### \#\# 2. Cài đặt hoặc cập nhật "App Installer" từ Microsoft Store (Cách phổ biến nhất) 🛒
+
+`winget` được phân phối thông qua một ứng dụng có tên là **App Installer** trên Microsoft Store. Việc `winget` không chạy thường là do ứng dụng này bị thiếu hoặc đã cũ.
+
+1.  Mở **Microsoft Store**.
+2.  Tìm kiếm "App Installer".
+3.  Nếu bạn thấy nút **"Cập nhật" (Update)** hoặc **"Tải về" (Get)**, hãy nhấn vào đó.
+
+Hoặc, bạn có thể truy cập trực tiếp vào trang của App Installer qua liên kết này và nhấn "Get in Store app" để mở ứng dụng trong Microsoft Store:
+
+[**App Installer trên Microsoft Store**](https://www.google.com/search?q=https://apps.microsoft.com/store/detail/app-installer/9NBLGGH4NNS1)
+
+Sau khi cài đặt hoặc cập nhật xong, hãy **khởi động lại PowerShell** và thử lại lệnh `winget`.
+
+-----
+
+### \#\# 3. Kiểm tra biến môi trường PATH ⚙️
+
+Đôi khi App Installer đã được cài đặt nhưng đường dẫn đến `winget.exe` chưa được thêm vào biến môi trường PATH của hệ thống.
+
+1.  Mở **PowerShell**.
+
+2.  Chạy lệnh sau để kiểm tra xem đường dẫn `WindowsApps` có trong PATH không:
+
+    ```powershell
+    $env:Path -split ';' | Select-String 'WindowsApps'
+    ```
+
+    Nếu bạn thấy kết quả có chứa `Microsoft\WindowsApps`, nghĩa là đường dẫn đã đúng. Nếu không có kết quả nào, bạn cần thêm thủ công.
+
+3.  **Cách thêm PATH thủ công:**
+
+      * Mở **Start Menu**, gõ "Edit the system environment variables" và mở nó.
+      * Trong cửa sổ System Properties, chọn **Environment Variables...**.
+      * Trong mục "User variables for [Tên người dùng của bạn]", tìm và chọn biến **Path**, sau đó nhấn **Edit...**.
+      * Nhấn **New** và dán đường dẫn sau:
+        ```
+        %USERPROFILE%\AppData\Local\Microsoft\WindowsApps
+        ```
+      * Nhấn **OK** ở tất cả các cửa sổ để lưu lại.
+      * **Khởi động lại máy tính** hoặc ít nhất là khởi động lại PowerShell và thử lại.
+
+-----
+
+### \#\# 4. Cài đặt thủ công từ GitHub (Nếu Store không hoạt động) 📦
+
+Nếu bạn không thể sử dụng Microsoft Store, bạn có thể tải và cài đặt `winget` trực tiếp từ kho mã nguồn của Microsoft trên GitHub.
+
+1.  Truy cập trang phát hành chính thức: [**GitHub - winget-cli Releases**](https://github.com/microsoft/winget-cli/releases)
+2.  Tìm phiên bản mới nhất (thường ở trên cùng và có nhãn "Latest").
+3.  Tải xuống tệp có đuôi `.msixbundle`.
+4.  Mở **PowerShell với quyền Quản trị (Administrator)**, điều hướng đến thư mục bạn vừa tải tệp về (ví dụ: `cd $env:USERPROFILE\Downloads`).
+5.  Chạy lệnh sau (thay `AppName` bằng tên tệp bạn đã tải):
+    ```powershell
+    Add-AppxPackage -Path ".\AppName.msixbundle"
+    ```
+    Ví dụ: `Add-AppxPackage -Path ".\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"`
+6.  Khởi động lại PowerShell và kiểm tra lại `winget`.
+
+-----
+
+### \#\# 5. Kiểm tra chính sách nhóm (Group Policy) 🏢
+
+Nếu bạn đang dùng máy tính của công ty, có thể quản trị viên đã vô hiệu hóa `winget` thông qua Group Policy.
+
+1.  Nhấn `Windows` + `R`, gõ `gpedit.msc` và Enter (lưu ý: `gpedit.msc` không có trên phiên bản Windows Home).
+2.  Điều hướng đến:
+    `Computer Configuration > Administrative Templates > Windows Components > Desktop App Installer`
+3.  Ở bên phải, tìm các chính sách có tên như **"Turn on App Installer"** hoặc **"Enable winget"**. Đảm bảo chúng được đặt thành **"Not Configured"** hoặc **"Enabled"**. Nếu chúng đang ở trạng thái **"Disabled"**, đó chính là nguyên nhân. Bạn cần liên hệ với quản trị viên IT để thay đổi.
